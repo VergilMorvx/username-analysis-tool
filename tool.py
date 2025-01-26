@@ -10,6 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from tqdm import tqdm
 from dotenv import load_dotenv
+import requests
 
 # ASCII Art Header and Quote
 def display_header():
@@ -30,6 +31,44 @@ def display_header():
 ###**++===-::---:::::::::::::::::::::::::-==+**##%%%#%**++============
 #*#*#**+==--===-:::::::::::::::::::::::::::-=+*******%#**++===========
 ######*++=+++=---:::::-==========-::::::::::==+**=::-+#***++++++======
+%%%%%#*+==++**=======+***#%%%%%*==--::::::::-====::===::=***+**++====+
+%%%%%%*=====***####******##%%##*+======:::::-===-=****=:::-*+++=======
+%%%%%%*=====**%%%%%%##+==*%%%%#%%%**+==-:::::::::-*****==--=+==-=====+
+%%%%%%*======###%%@@%%*::=*%%#***==--::::::::::-::=*++**=-=++=----===+
+%%%%%%*======#%%%%%%%%=:::==*%%##*+-:::::::----::--::=#*===#+=-::--===
+%%%%%%*+====+#%%#%%%%%-::::--=***+===--:------::::::+%**+=*#*==----===
+%%%%%%#++===+#%%**###*-::::--======---=----::::::=+##*#***##*+==----==
+%@%@@%%*+++++#%%%****+::::::-==++====-===---:::--=##%%****%%#**+======
+@%%@@@%**+++**%%%%***+=------=++**========-:-----=%%%##**==+#%%*+==---
+@@%@@%%#***+****##*#**%##%%%%====**+=======-=====#%%###**==-=+%%#*==--
+@@%@@%%%***+==++=+*%##*%%%#*=---===++==+========*@%##%#**++====+**+==-
+@@%@%@%%***======*%@%**%%%#+==-==****+=+*****+**%%#%%##***+**+========
+@%%%%%%%#**+====%@@@@%%##**%%%%#%%%%#**+******%%##%%%###%#***=========
+%%%%%%#%#***==*%@@@@@@%*-*@%%*=====+**++***#%%*##%%%%#*%%%%#***+++====
+%%##*********%@@@@@@@@+==%##*##*******++**%%####%%%%##*%%%%##******+==
+##***+**++*%%@@@@@@@@@%%%%%%%%%%%*******%%%%%%%%%%%#*##%%%%%###******+
+#***+++***%@@@@@@@@@@@@@@@%%%%#******#%%%%%%%%%%%%%###%%%%%%%#####****
+##******#%@@@@@@@@@@@@@@@@@%%%%##%%%%@@%%%%%%%%%%%%%#%@%%%%%%%######**
+%#*****%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%%%%%%%%%%%%%#%@%%%%%%%####****
+%%#**#%@@@@@@@%@@@@@@@@@@@@@@@@@@@@@@%%%%%%%%%%%%%%%#%@@%%%%%%%##*##**
+%##*%%@@@%%%%%%%%%%@%@@@@@@@@@@@@@@%%%@@@@@%%%%%%%%%%%@@@%%%%%########
+####@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%@@@@@@@%%%%@%%%%%%@@@@%%%%%%%%%%%%%
+###*#%%%%%%%%####*********#%@@@@@%@@@@@@@@%%%@@@@%%%%@@@@@%%%%%%%%%%%%
+###*******+**+*************%@@@@%@@@%%%@@@%@%@@@@@%%%@@@@%%%%%%%%%%%@@
+%###***********************%@@@@@@@@@%%%%@@@@@@@@@%%%@@@@@%%%%%%@@@@@@
+%%%#********************###@@@@@%%@@@@%%%%%@@@@@@@@%%@@@@%%%%%%@@@@@@@
+%%%%#***#*******######%#%%%@@@@@@%%@@@@@%%%%%@@@@@@%%@@@%%%%@@@@@@@@@@
+%%%%#############%%%%%%%%%@%%%@@@@%%@@@@@@%%%%@@@@@%%@@@@%@@@@@@@@@@@@
+%%%%%%%%%%%%%%%%%%%%%%%%@@%@@@@@@@@%%@@@@@@%%%%@@@@@%@@@@@@@@@@@@@@@@@
+%@%%%%%%%%%%%%%%%%%%%%%%%@@@@@@@@@@@%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+%@%%%%%%%%%%%@%%%%%%%%%%@@@@@@@@@@@@@@%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+%%%@%@%%%%%%%%@%@%%%%%@@@@@@@@@@@@@@@@@%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@@@%@%%%%%%%%%%@%@%%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@%@%@@%%%%%%%%%%%%%%@@@@@@@@@@@@@@@@@@@@%%%@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@%@%@%%%%%%%%%%%%%%@@@@@@@@@@@@@@@@@@@@@@%%%@@@@@@@@@@@@@@@@@@@@@@@@@@
+%%%%%%%%%%%%%%%#%%@@@@@@@@@@@@@@@@@@@@@%%%%%%@@@@@@@@@@@@@@@@@@@@@@@@@
+%%%%%%%%%%######%%@@@@@@@@@@@@@@@@@@@@%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 """)
     print("\n\"The only way to deal with an unfree world is to become so absolutely free that your very existence is an act of rebellion.\"\n")
 
@@ -64,65 +103,37 @@ def save_variations_to_file(username, variations):
             txt_file.write(f"{variation}\n")
     print(f"Variations saved to {username}_results.txt")
 
-# Google Dork using Selenium
-def google_dork_search(variations, selected_queries, language):
-    chrome_options = Options()
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    service = Service(CHROME_DRIVER_PATH)
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-
-    base_url = f"https://www.google.com/?hl={language}"
-    queries = {
-        "1": 'site:instagram.com intext:"{username}"',
-        "2": 'site:facebook.com intext:"{username}"',
-        "3": 'site:linkedin.com intext:"{username}"',
-        "4": 'site:pastebin.com "{username}"',
-        "5": '"{username}" filetype:pdf',
-        "6": '"{username}" filetype:doc',
-        "7": '"{username}" "gmail.com"',
-        "8": '"{username}" site:*.com',
-    }
-
+# Google Dork using SerpAPI
+def google_dork_search_serpapi(variations, selected_queries):
     all_results = {}
-
-    for username in tqdm(variations, desc="Dorking for all variations"):
+    for username in tqdm(variations, desc="Dorking with SerpAPI"):
         user_results = {}
         for query_id in selected_queries:
-            query = queries[query_id].format(username=username)
-            print(f"\nSearching for: {query}")
-            driver.get(base_url)
+            query = {
+                "1": f'site:instagram.com intext:"{username}"',
+                "2": f'site:facebook.com intext:"{username}"',
+                "3": f'site:linkedin.com intext:"{username}"',
+                "4": f'site:pastebin.com "{username}"',
+                "5": f'"{username}" filetype:pdf',
+                "6": f'"{username}" filetype:doc',
+                "7": f'"{username}" "gmail.com"',
+                "8": f'"{username}" site:*.com',
+            }[query_id]
+
+            url = "https://serpapi.com/search"
+            params = {"q": query, "hl": "en", "gl": "us", "api_key": SERPAPI_KEY}
 
             try:
-                search_box = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.NAME, "q"))
-                )
-                search_box.clear()
-                search_box.send_keys(query)
-                search_box.send_keys(Keys.RETURN)
-
-                # Wait for results or handle CAPTCHA
-                try:
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, ".tF2Cxc a"))
-                    )
-                except TimeoutException:
-                    if "sorry" in driver.current_url or "captcha" in driver.page_source.lower():
-                        print("\nCAPTCHA detected. Please solve it manually.")
-                        input("Press Enter after solving the CAPTCHA to continue...")
-                    else:
-                        raise TimeoutException("Timeout waiting for search results.")
-
-                search_results = driver.find_elements(By.CSS_SELECTOR, ".tF2Cxc a")
-                links = [result.get_attribute("href") for result in search_results]
-                user_results[query] = links[:5]  # Limit to 5 results
-
-            except Exception as e:
+                response = requests.get(url, params=params)
+                response.raise_for_status()
+                data = response.json()
+                links = [item["link"] for item in data.get("organic_results", [])]
+                user_results[query] = links[:5]
+            except requests.RequestException as e:
                 print(f"An error occurred for query '{query}': {e}")
 
         all_results[username] = user_results
 
-    driver.quit()
     return all_results
 
 # Username Variation Generator
@@ -148,7 +159,6 @@ class UsernameVariationGenerator:
                 self.replacements[key] = values.split(",")
 
     def generate_replacement_variations(self):
-        """Generate variations by replacing characters."""
         def apply_replacements(char):
             return self.replacements.get(char.lower(), [char])
 
@@ -156,7 +166,6 @@ class UsernameVariationGenerator:
         return map(''.join, itertools.product(*replacement_options))
 
     def generate_special_variations(self):
-        """Add structural variations with special characters."""
         variations = set()
         base = self.username.replace('.', '').replace('_', '')
 
@@ -166,15 +175,11 @@ class UsernameVariationGenerator:
         return variations
 
     def generate_combined_variations(self):
-        """Combine replacement and structural variations."""
         replacement_variations = list(self.generate_replacement_variations())
         special_variations = list(self.generate_special_variations())
         combined = set(replacement_variations + special_variations)
 
-        # Ensure the original username is always included first
         combined = sorted(combined, key=lambda x: x != self.username)
-
-        # Filter blacklist
         combined = [v for v in combined if not any(b in v for b in self.blacklist)]
 
         return combined
@@ -192,6 +197,10 @@ def main():
 
     if choice in {"1", "3"}:
         method = input("Use SerpAPI (1) or Selenium (2)? ").strip()
+
+        if method not in {"1", "2"}:
+            print("Invalid method. Exiting.")
+            return
 
         options = {
             "1": "Instagram",
@@ -213,7 +222,15 @@ def main():
         if "9" in selected:
             selected = [key for key in options.keys() if key != "9"]
 
-        if choice == "3":
+        if choice == "1":
+            if method == "1":
+                results = google_dork_search_serpapi([username], selected)
+            else:
+                language = input("Enter language (e.g., en, fr): ").strip()
+                results = google_dork_search_selenium([username], selected, language)
+            save_results_to_file(username, results)
+
+        elif choice == "3":
             blacklist = input("Blacklist characters (comma-separated, leave blank if none): ").split(",") if input("Blacklist any characters? (y/n): ").strip().lower() == "y" else []
             custom_replacements = input("Custom replacements (format: char-new1,new2, leave blank if none): ").split(",") if input("Add custom replacements? (y/n): ").strip().lower() == "y" else []
             generator = UsernameVariationGenerator(username, blacklist, custom_replacements)
@@ -223,16 +240,19 @@ def main():
             for v in variations:
                 print(v)
 
-            if method == "2":
+            if method == "1":
+                results = google_dork_search_serpapi(variations, selected)
+            else:
                 language = input("Enter language (e.g., en, fr): ").strip()
-                all_results = google_dork_search(variations, selected, language)
-                save_results_to_file(username, all_results)
+                results = google_dork_search_selenium(variations, selected, language)
+            save_results_to_file(username, results)
 
     elif choice == "2":
         blacklist = input("Blacklist characters (comma-separated, leave blank if none): ").split(",") if input("Blacklist any characters? (y/n): ").strip().lower() == "y" else []
         custom_replacements = input("Custom replacements (format: char-new1,new2, leave blank if none): ").split(",") if input("Add custom replacements? (y/n): ").strip().lower() == "y" else []
         generator = UsernameVariationGenerator(username, blacklist, custom_replacements)
         variations = generator.generate_combined_variations()
+
         print(f"Generated {len(variations)} variations:")
         for v in variations:
             print(v)
@@ -240,3 +260,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
