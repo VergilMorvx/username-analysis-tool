@@ -17,7 +17,7 @@ A Python tool designed to generate comprehensive username variations and perform
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/username-analysis-tool.git
+   git clone https://github.com/VergilMorvx/username-analysis-tool.git
    cd username-analysis-tool
    ```
 
