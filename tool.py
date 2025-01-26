@@ -104,37 +104,65 @@ def save_variations_to_file(username, variations):
     print(f"Variations saved to {username}_results.txt")
 
 # Google Dork using SerpAPI
-def google_dork_search_serpapi(variations, selected_queries):
+def google_dork_search_selenium(variations, selected_queries, language):
+    # Configure Selenium Chrome options
+    chrome_options = Options()
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    # chrome_options.add_argument("--headless")  # Optional: Headless mode for running without UI
+    service = Service(CHROME_DRIVER_PATH)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+
+    base_url = f"https://www.google.com/?hl={language}"
+    queries = {
+        "1": 'site:instagram.com intext:"{username}"',
+        "2": 'site:facebook.com intext:"{username}"',
+        "3": 'site:linkedin.com intext:"{username}"',
+        "4": 'site:pastebin.com "{username}"',
+        "5": '"{username}" filetype:pdf',
+        "6": '"{username}" filetype:doc',
+        "7": '"{username}" "gmail.com"',
+        "8": '"{username}" site:*.com',
+    }
+
     all_results = {}
-    for username in tqdm(variations, desc="Dorking with SerpAPI"):
+
+    for username in tqdm(variations, desc="Dorking for all variations with Selenium"):
         user_results = {}
         for query_id in selected_queries:
-            query = {
-                "1": f'site:instagram.com intext:"{username}"',
-                "2": f'site:facebook.com intext:"{username}"',
-                "3": f'site:linkedin.com intext:"{username}"',
-                "4": f'site:pastebin.com "{username}"',
-                "5": f'"{username}" filetype:pdf',
-                "6": f'"{username}" filetype:doc',
-                "7": f'"{username}" "gmail.com"',
-                "8": f'"{username}" site:*.com',
-            }[query_id]
-
-            url = "https://serpapi.com/search"
-            params = {"q": query, "hl": "en", "gl": "us", "api_key": SERPAPI_KEY}
+            query = queries[query_id].format(username=username)
+            print(f"\nSearching for: {query}")
+            driver.get(base_url)
 
             try:
-                response = requests.get(url, params=params)
-                response.raise_for_status()
-                data = response.json()
-                links = [item["link"] for item in data.get("organic_results", [])]
-                user_results[query] = links[:5]
-            except requests.RequestException as e:
+                # Enter the query into the search box
+                search_box = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.NAME, "q"))
+                )
+                search_box.clear()
+                search_box.send_keys(query)
+                search_box.send_keys(Keys.RETURN)
+
+                # Wait for results or handle CAPTCHA
+                try:
+                    links = WebDriverWait(driver, 10).until(
+                        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".tF2Cxc a"))
+                    )
+                    user_results[query] = [link.get_attribute("href") for link in links][:5]  # Limit to 5 results
+                except TimeoutException:
+                    if "sorry" in driver.current_url or "captcha" in driver.page_source.lower():
+                        print("\nCAPTCHA detected. Please solve it manually.")
+                        input("Press Enter after solving the CAPTCHA to continue...")
+                    else:
+                        print(f"Timeout waiting for results for query: {query}")
+            except Exception as e:
                 print(f"An error occurred for query '{query}': {e}")
 
         all_results[username] = user_results
 
+    driver.quit()
     return all_results
+
 
 # Username Variation Generator
 class UsernameVariationGenerator:
@@ -260,4 +288,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
